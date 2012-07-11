@@ -88,7 +88,7 @@ void VoIPReceiver::handleMessage(cMessage *msg)
 
 	EV<<"PACCHETTO ARRIVATO: TALK "<<pPacket->getIDtalk()<<" FRAME "<<pPacket->getIDframe()<<"\n\n";
 
-	pPacket->setArrivalTime(SIMTIME_DBL(simTime()));
+	pPacket->setArrivalTime(simTime());
 	mPacketsList.push_back(pPacket);
 }
 
@@ -135,7 +135,7 @@ void VoIPReceiver::playout(bool finish)
 	{
 		pPacket =  mPacketsList.front();
 
-		simtime_t delay = pPacket->getArrivalTime()-SIMTIME_DBL(pPacket->getTimestamp());
+		simtime_t delay = pPacket->getArrivalTime() - pPacket->getTimestamp();
 		emit(mFrameDelaySignal, delay);
 
 		pPacket->setPlayoutTime(firstPlayoutTime + (pPacket->getIDframe() - firstFrameId)  * mSamplingDelta);
