@@ -110,10 +110,8 @@ Batman::~Batman()
 
 void Batman::initialize(int stage)
 {
-
     if (stage!=4)
         return;
-
 
     int32_t download_speed = 0, upload_speed = 0;
     char routing_class_opt = 0, pref_gw_opt = 0;
@@ -251,7 +249,6 @@ void Batman::initialize(int stage)
         schedule_own_packet(batman_if);
     }
 
-
     timer = new cMessage();
     WATCH_PTRMAP(origMap);
 
@@ -259,9 +256,7 @@ void Batman::initialize(int stage)
     //simtime_t select_timeout = (forw_list[0]->send_time - curr_time) > 0 ?forw_list[0]->send_time - curr_time : 10;
     simtime_t select_timeout = forw_list[0]->send_time > 0 ?forw_list[0]->send_time : 10;
     scheduleAt(select_timeout, timer);
-
 }
-
 
 
 void Batman::handleMessage(cMessage *msg)
@@ -284,7 +279,6 @@ void Batman::handleMessage(cMessage *msg)
         numOrig = origMap.size();
         return;
     }
-
 
     /* harden select_timeout against sudden time change (e.g. ntpdate) */
     //select_timeout = ((int)(((struct forw_node *)forw_list.next)->send_time - curr_time) > 0 ?
@@ -347,13 +341,11 @@ void Batman::handleMessage(cMessage *msg)
 
         hna_buff_len = bat_packet->getHnaMsgArraySize() * 5;
 
-
         unsigned char  hnaLen = bat_packet->getHnaMsgArraySize();
         if (hnaLen!=0)
             hna_recv_buff = &bat_packet->getHnaMsg(0);
         else
             hna_recv_buff = NULL;
-
 
         if (isLocalAddress(neigh))
             is_my_addr = 1;
@@ -363,7 +355,6 @@ void Batman::handleMessage(cMessage *msg)
             is_broadcast = 1;
         if (isLocalAddress(bat_packet->getPrevSender()))
             is_my_oldorig = 1;
-
 
         if (bat_packet->getVersion() != 0) {
             EV << "Drop packet: incompatible batman version "<< bat_packet->getVersion() <<endl;
@@ -382,7 +373,6 @@ void Batman::handleMessage(cMessage *msg)
             delete bat_packet;
             break;
         }
-
 
         if (is_my_orig) {
             orig_neigh_node = get_orig_node(neigh);
@@ -427,7 +417,6 @@ void Batman::handleMessage(cMessage *msg)
         is_duplicate = count_real_packets(bat_packet, neigh, if_incoming);
 
         orig_node = get_orig_node(bat_packet->getOrig());
-
 
         /* if sender is a direct neighbor the sender ip equals originator ip */
         orig_neigh_node = (bat_packet->getOrig() == neigh ? orig_node : get_orig_node(neigh));
@@ -526,7 +515,6 @@ void Batman::scheduleNextEvent()
 
 uint32_t Batman::getRoute(const Uint128 &dest, std::vector<Uint128> &add)
 {
-
     OrigMap::iterator it = origMap.find(dest);
     if (it != origMap.end())
     {
@@ -572,6 +560,4 @@ bool Batman::getNextHop(const Uint128 &dest, Uint128 &add, int &iface, double &v
     }
     return false;
 }
-
-
 

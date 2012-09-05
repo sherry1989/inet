@@ -40,6 +40,7 @@ class BatmanHnaMsg
            netmask=m.netmask;
            return *this;
     }
+
     bool operator < (BatmanHnaMsg const &o) const
     {
         if (addr < o.addr)
@@ -83,6 +84,7 @@ class BatmanHnaMsg
         else
             return true;
     }
+
     BatmanHnaMsg * dup()
     {
         BatmanHnaMsg *aux = new BatmanHnaMsg;
@@ -123,7 +125,6 @@ packet BatmanPacket
 }
 
 
-
 packet visPacket {
     Uint128 senderIp;
     unsigned char version;
@@ -131,5 +132,4 @@ packet visPacket {
     unsigned char tqMax;
     vis_data visData[];
 }
-
 
