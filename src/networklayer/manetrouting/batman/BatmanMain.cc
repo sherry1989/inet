@@ -95,7 +95,7 @@ Batman::~Batman()
     cancelAndDelete(timer);
     while (!hnaMap.empty())
     {
-        delete hnaMap.begin()->second;
+        delete hnaMap.begin()->second;    //FIXME I think, this deleted twice.
         hnaMap.erase(hnaMap.begin());
     }
     hna_list.clear();
