@@ -1305,7 +1305,7 @@ int Batman::add_del_interface_rules(int8_t rule_action)
 
         if (ifr->ipv4Data()==NULL) // no ipv4
             continue;
-
+        if (ifr->isLoopback())
             continue;
         if (ifr->isDown())
             continue;
