@@ -35,7 +35,7 @@ void Batman::hna_local_task_exec(void)
     Hna_local_entry *hna_local_entry;
 
     if (hna_chg_list.empty())
-    return;
+        return;
 
     while (!hna_chg_list.empty())
     {
