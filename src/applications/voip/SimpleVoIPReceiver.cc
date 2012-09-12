@@ -48,8 +48,8 @@ void SimpleVoIPReceiver::initialize(int stage)
             socket.bind(port);
     }
 
-    mFrameLossRateSignal = registerSignal("VoIPFrameLossRate");
-    mFrameDelaySignal = registerSignal("VoIPFrameDelay");
+    mPacketLossRateSignal = registerSignal("VoIPPacketLossRate");
+    mPacketDelaySignal = registerSignal("VoIPPacketDelay");
     mPlayoutDelaySignal = registerSignal("VoIPPlayoutDelay");
     mPlayoutLossRateSignal = registerSignal("VoIPPlayoutLossRate");
     mMosSignal = registerSignal("VoIPMosSignal");
@@ -92,14 +92,14 @@ void SimpleVoIPReceiver::handleMessage(cMessage *msg)
             mCurrentTalkspurt = pPacket->getTalkspurtID();
     }
 
-    //emit(mFrameLossSignal,1.0);
+    //emit(mPacketLossSignal,1.0);
 
-    EV << "PACCHETTO ARRIVATO: TALK " << pPacket->getTalkspurtID() << " FRAME " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
+    EV << "PACCHETTO ARRIVATO: TALK " << pPacket->getTalkspurtID() << " PACKET " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
 
     // FXIME: maybe the simulation kernel got it wrong? this is a useless assert
     ASSERT(pPacket->getArrivalTime() == simTime());
     simtime_t delay = pPacket->getArrivalTime() - pPacket->getVoipTimestamp();
-    emit(mFrameDelaySignal, delay);
+    emit(mPacketDelaySignal, delay);
     mPacketsList.push_back(pPacket);
 }
 
@@ -112,8 +112,8 @@ void SimpleVoIPReceiver::playout(bool finish)
     SimpleVoIPPacket* pPacket = mPacketsList.front();
 
     simtime_t    firstPlayoutTime = pPacket->getArrivalTime() + mPlayoutDelay;
-    unsigned int firstFrameId = pPacket->getPacketID();
-    unsigned int n_frames = pPacket->getTalkspurtNumPackets();
+    unsigned int firstPacketId = pPacket->getPacketID();
+    unsigned int talkspurtNumPackets = pPacket->getTalkspurtNumPackets();
     unsigned int playoutLoss = 0;
     unsigned int tailDropLoss = 0;
     unsigned int channelLoss;
@@ -130,8 +130,8 @@ void SimpleVoIPReceiver::playout(bool finish)
     else
         channelLoss = pPacket->getTalkspurtNumPackets() - mPacketsList.size();
 
-    double frameLossRate = ((double)channelLoss/(double)n_frames);
-    emit(mFrameLossRateSignal, frameLossRate);
+    double packetLossRate = ((double)channelLoss/(double)talkspurtNumPackets);
+    emit(mPacketLossRateSignal, packetLossRate);
 
     //VETTORE PER GESTIRE DUPLICATI     //FIXME Translate!!!
     // FIXME: what is actually arrived here?
@@ -149,24 +149,24 @@ void SimpleVoIPReceiver::playout(bool finish)
     {
         pPacket = mPacketsList.front();
         // FIXME: why do we modify a packet in the receiver?
-        pPacket->setPlayoutTime(firstPlayoutTime + ((int)pPacket->getPacketID() - (int)firstFrameId)  * pPacket->getVoiceDuration());
+        pPacket->setPlayoutTime(firstPlayoutTime + ((int)pPacket->getPacketID() - (int)firstPacketId)  * pPacket->getVoiceDuration());
 
         // FIXME: is this really a jitter? positive means the packet is too late
         last_jitter = pPacket->getArrivalTime() - pPacket->getPlayoutTime();
         max_jitter = std::max( max_jitter, last_jitter );
 
-        EV << "MISURATO JITTER PACCHETTO: " << last_jitter << " TALK " << pPacket->getTalkspurtID() << " FRAME " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
+        EV << "MISURATO JITTER PACCHETTO: " << last_jitter << " TALK " << pPacket->getTalkspurtID() << " PACKET " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
 
         //GESTIONE IN CASO DI DUPLICATI     //FIXME Translate!!!
         if (isArrived[pPacket->getPacketID()])
         {
-                    EV << "PACCHETTO DUPLICATO: TALK " << pPacket->getTalkspurtID() << " FRAME " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
+                    EV << "PACCHETTO DUPLICATO: TALK " << pPacket->getTalkspurtID() << " PACKET " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
                     delete pPacket;
         }
         else if ( last_jitter > 0.0 )
         {
             ++playoutLoss;
-            EV << "PACCHETTO IN RITARDO ELIMINATO: TALK " << pPacket->getTalkspurtID() << " FRAME " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
+            EV << "PACCHETTO IN RITARDO ELIMINATO: TALK " << pPacket->getTalkspurtID() << " PACKET " << pPacket->getPacketID() << "\n\n";     //FIXME Translate!!!
             delete pPacket;
         }
         else
@@ -175,7 +175,7 @@ void SimpleVoIPReceiver::playout(bool finish)
             while ( !mPlayoutQueue.empty() && pPacket->getArrivalTime() > mPlayoutQueue.front()->getPlayoutTime() )
             {
                 ++mBufferSpace;
-                //EV << "RIPRODOTTO ED ESTRATTO DAL BUFFER: TALK " << mPlayoutQueue.front()->getTalkspurtID() << " FRAME " << mPlayoutQueue.front()->getPacketID() << "\n";     //FIXME Translate!!!
+                //EV << "RIPRODOTTO ED ESTRATTO DAL BUFFER: TALK " << mPlayoutQueue.front()->getTalkspurtID() << " PACKET " << mPlayoutQueue.front()->getPacketID() << "\n";     //FIXME Translate!!!
                 delete mPlayoutQueue.front();
                 mPlayoutQueue.pop_front();
             }
@@ -183,7 +183,7 @@ void SimpleVoIPReceiver::playout(bool finish)
             if (mBufferSpace > 0)
             {
                 EV << "PACCHETTO CAMPIONABILE INSERITO NEL BUFFER: TALK "
-                        << pPacket->getTalkspurtID() << " FRAME " << pPacket->getPacketID()
+                        << pPacket->getTalkspurtID() << " PACKET " << pPacket->getPacketID()
                         << " ISTANTE DI ARRIVO " << pPacket->getArrivalTime()
                         << " ISTANTE DI CAMPIONAMENTO " << pPacket->getPlayoutTime() << "\n\n";     //FIXME Translate!!!
                 --mBufferSpace;
@@ -195,7 +195,7 @@ void SimpleVoIPReceiver::playout(bool finish)
             else
             {
                 ++tailDropLoss;
-                EV << "BUFFER PIENO PACCHETTO SCARTATO: TALK " << pPacket->getTalkspurtID() << " FRAME "
+                EV << "BUFFER PIENO PACCHETTO SCARTATO: TALK " << pPacket->getTalkspurtID() << " PACKET "
                         << pPacket->getPacketID() << " ISTANTE DI ARRIVO " << pPacket->getArrivalTime() << "\n\n";     //FIXME Translate!!!
                 delete pPacket;
             }
@@ -204,17 +204,17 @@ void SimpleVoIPReceiver::playout(bool finish)
         mPacketsList.pop_front();
     }
 
-    double proportionalLoss = ((double)tailDropLoss+(double)playoutLoss+(double)channelLoss)/(double)n_frames;
+    double proportionalLoss = ((double)tailDropLoss+(double)playoutLoss+(double)channelLoss)/(double)talkspurtNumPackets;
     EV << "proportionalLoss " << proportionalLoss << "(tailDropLoss=" << tailDropLoss << " - playoutLoss="
             << playoutLoss << " - channelLoss=" << channelLoss << ")\n\n";
 
     double mos = eModel(SIMTIME_DBL(mPlayoutDelay), proportionalLoss);
 
     emit(mPlayoutDelaySignal, mPlayoutDelay);
-    double lossRate = ((double)playoutLoss/(double)n_frames);
+    double lossRate = ((double)playoutLoss/(double)talkspurtNumPackets);
     emit(mPlayoutLossRateSignal, lossRate);
     emit(mMosSignal, mos);
-    double tailDropRate = ((double)tailDropLoss/(double)n_frames);
+    double tailDropRate = ((double)tailDropLoss/(double)talkspurtNumPackets);
     emit(mTaildropLossRateSignal, tailDropRate);
 
     EV << "MOS CALCOLATO: eModel( " << mPlayoutDelay << " , " << tailDropLoss << "+" << playoutLoss << "+" << channelLoss << " ) = " << mos << "\n\n";     //FIXME Translate!!!

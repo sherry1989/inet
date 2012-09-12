@@ -50,8 +50,8 @@ class SimpleVoIPReceiver : public cSimpleModule
 
     bool        mInit;
 
-    simsignal_t mFrameLossRateSignal;
-    simsignal_t mFrameDelaySignal;
+    simsignal_t mPacketLossRateSignal;
+    simsignal_t mPacketDelaySignal;
     simsignal_t mPlayoutDelaySignal;
     simsignal_t mPlayoutLossRateSignal;
     simsignal_t mMosSignal;
