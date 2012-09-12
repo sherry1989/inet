@@ -28,7 +28,7 @@ SimpleVoIPReceiver::~SimpleVoIPReceiver()
 
 void SimpleVoIPReceiver::initialize(int stage)
 {
-    if (stage!=3)
+    if (stage != 3)
         return;
 
     emodel_Ie_ = par("emodel_Ie_");
