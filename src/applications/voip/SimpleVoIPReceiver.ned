@@ -30,7 +30,7 @@ simple SimpleVoIPReceiver like IUDPApp
         int emodel_A_ = default(5);
         double emodel_Ro_ = default(93.2);
         double playoutDelay @unit(s) = default(0);      // delay for begin playout after received first packet
-        int dim_buffer = default(20);
+        int bufferSpace = default(20);      // buffer size (max number of packets in buffer)
 
         @signal[VoIPPacketDelay](type="simtime_t");      // when receive a frame
         @signal[VoIPPacketLossRate](type="double");      // at end of talkspur
