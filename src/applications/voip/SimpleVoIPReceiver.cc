@@ -41,7 +41,7 @@ void SimpleVoIPReceiver::initialize(int stage)
 
     int port = par("localPort");
     EV << "VoIPReceiver::initialize - binding to port: local:" << port << endl;
-    if (port!=-1) {
+    if (port != -1) {
             socket.setOutputGate(gate("udpOut"));
             socket.bind(port);
     }
