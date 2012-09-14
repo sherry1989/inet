@@ -164,8 +164,7 @@ void SimpleVoIPReceiver::evaluateTalkspurt(bool finish)
     double packetLossRate = ((double)channelLoss/(double)talkspurtNumPackets);
     emit(packetLossRateSignal, packetLossRate);
 
-    //VETTORE PER GESTIRE DUPLICATI     //FIXME Translate!!!
-    // FIXME: what is actually arrived here?
+    //VECTOR TO MANAGE DUPLICATED PACKETS
     bool* isArrived = new bool[talkspurtNumPackets];
     for (unsigned int y = 0; y < talkspurtNumPackets; y++)
     {
