@@ -485,6 +485,8 @@ void Batman::choose_gw(void)
 
         /* ignore this gateway if recent connection attempts were unsuccessful */
         /* if it is our only gateway retry immediately */
+        //FIXME atnezni alaposan: mi ez????
+        //if ((gw_node != (GwNode *)gw_list.next) || (gw_node->list.next != (struct list_head *)&gw_list)) {
         if (gw_list.size()) {
             if (current_time < (gw_node->last_failure + 30))
                 continue;
@@ -669,7 +671,8 @@ void Batman::update_gw_list(OrigNode *orig_node, uint8_t new_gwflags, uint16_t g
     }
 
     gw_node = new GwNode();
-    memset(gw_node, 0, sizeof(GwNode));     //FIXME ezt igy szabad???? vptr???? GwNode most mar nem cObject, igy nem gond, de nem szep!!!!
+    memset(gw_node, 0, sizeof(GwNode));
+            //FIXME ezt igy szabad???? vptr???? GwNode most mar nem cObject, igy nem gond, de nem szep!!!!
 
     gw_node->orig_node = orig_node;
     gw_node->gw_port = gw_port;
