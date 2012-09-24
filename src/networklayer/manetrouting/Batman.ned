@@ -38,10 +38,10 @@ simple Batman extends BaseRouting like IManetRouting
         double originatorInterval @unit(s) = default(1s);   // originator message interval
         string preferedGateWay = default("0.0.0.0");
         int routingClass = default(0);      // this parameter is used to set the routing behaviour
-                                            // * 0 set no default route
-                                            // * 1 use fast internet connection
-                                            // * 2 use stable internet connection
-                                            // * 3 use use best statistic (olsr style)
+                                            // *  0: set no default route
+                                            // *  1: use fast internet connection (gw_flags * TQ)
+                                            // *  2: use stable internet connection (TQ)
+                                            // *  3: use fast-switch internet connection (TQ but switch as soon as a better gateway appears)
         bool aggregationEnable = default(true);
         int GWClass_download_speed @unit(kbps) = default(0);    // internet access download speed on preferedGateway, 0 means: this node doesn't have direct internet access
         int GWClass_upload_speed @unit(kbps) = default(0);      // internet access upload speed on preferedGateway, 0 means download speed / 5
