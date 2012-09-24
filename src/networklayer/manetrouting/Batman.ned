@@ -35,12 +35,16 @@ simple Batman extends BaseRouting like IManetRouting
         @class(Batman);
         int debugLevel = default(1);
         double purgeTimeout @unit(s) = default(200s);
-        double originatorInterval @unit(s) = default(1s);
+        double originatorInterval @unit(s) = default(1s);   // originator message interval
         string preferedGateWay = default("0.0.0.0");
-        int routingClass = default(0);
+        int routingClass = default(0);      // this parameter is used to set the routing behaviour
+                                            // * 0 set no default route
+                                            // * 1 use fast internet connection
+                                            // * 2 use stable internet connection
+                                            // * 3 use use best statistic (olsr style)
         bool aggregationEnable = default(true);
-        int GWClass_download_speed = default(0);
-        int GWClass_upload_speed = default(0);
+        int GWClass_download_speed @unit(kbps) = default(0);    // internet access download speed on preferedGateway, 0 means: this node doesn't have direct internet access
+        int GWClass_upload_speed @unit(kbps) = default(0);      // internet access upload speed on preferedGateway, 0 means download speed / 5
         volatile double jitter @unit(s) = default(uniform (0s,0.1s));
         volatile double jitter2 @unit(s) = default(uniform (-0.1s,0.1s));
         double MAX_AGGREGATION_MS @unit(s) = default(0.1s);
