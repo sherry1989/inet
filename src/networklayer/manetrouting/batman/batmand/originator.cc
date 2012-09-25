@@ -24,188 +24,54 @@
 #include "BatmanMain.h"
 #include "IPv4InterfaceData.h"
 
-OrigNode::OrigNode()
+NeighNode * Batman::create_neighbor(OrigNode *orig_node, OrigNode *orig_neigh_node, const Uint128 &neigh, BatmanIf *if_incoming)
 {
-    clear();
+    return new NeighNode(orig_node, orig_neigh_node, neigh, if_incoming, num_words, global_win_size);
 }
 
-void OrigNode::clear()
+#if 0
+/* needed for hash, compares 2 OrigNode, but only their ip-addresses. assumes that
+ * the ip address is the first field in the struct */
+int compare_orig(void *data1, void *data2)
 {
-    router = NULL;
-    batmanIf = NULL;
-    totalRec = 0;
-    for (unsigned int i=0; i<bcast_own.size(); i++)
-       bcast_own[i] = 0;
-    for (unsigned int i=0; i<bcast_own_sum.size(); i++)
-       bcast_own_sum[i] = 0;
-    tq_own = 0;
-    tq_asym_penalty = 0;
-    last_valid = 0;        /* when last packet from this node was received */
-    gwflags = 0;      /* flags related to gateway functions: gateway class */
-    hna_buff.clear();
-    last_real_seqno = 0;   /* last and best known squence number */
-    last_ttl = 0;         /* ttl of last received packet */
-    num_hops = MAX_HOPS;
-    neigh_list.clear();
+    return (memcmp(data1, data2, 4) == 0 ? 1 : 0);
 }
 
-std::string OrigNode::info() const
-{
-    std::stringstream out;
-    out << "orig:"  << IPv4Address(orig.getLo()) << "  ";
-    out << "totalRec:"  << this->totalRec << "  ";
-    if (bcast_own[0])
-      out << "bcast_own:" << bcast_own[0]<< "  ";
-    else
-        out << "bcast_own: *  ";
-    if (bcast_own_sum[0])
-      out << "bcast_own_sum:" << bcast_own_sum[0]<< "  ";
-    else
-        out << "bcast_own_sum: * ";
 
-    out << "tq_own:" << (int)tq_own<< "  ";
-    out << "tq_asym_penalty:" <<  (int)tq_asym_penalty<< "  ";
-    out << "last_valid:" << last_valid;        /* when last packet from this node was received */
-    out << "num_hops:" << num_hops;
-    out << " \n neig info: \n";
+/* hashfunction to choose an entry in a hash table of given size */
+/* hash algorithm from http://en.wikipedia.org/wiki/Hash_table */
+int choose_orig(void *data, int32_t size) {
+    unsigned char *key= data;
+    uint32_t hash = 0;
+    size_t i;
 
-    NeighNode *neigh_node = NULL;
-    for (unsigned int i = 0; i < neigh_list.size(); i++)
-    {
-        NeighNode * tmp_neigh_node = neigh_list[i];
-        if (tmp_neigh_node->addr == orig)
-            neigh_node = tmp_neigh_node;
-    }
-    if (!neigh_node)
-        out << "*";
-    else
-        out << neigh_node->info();
-
-    for (unsigned int i = 0; i < neigh_list.size(); i++)
-    {
-        out << "list neig :" << IPv4Address(neigh_list[i]->addr.getLo()) << " ";
+    for (i = 0; i < 4; i++) {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
     }
 
-    out << "\n router info:"; if (router==NULL) out << "*  "; else out << router->info() << "  ";
-    return out.str();
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+
+    return (hash%size);
 }
-
-std::string NeighNode::info() const
-{
-    std::stringstream out;
-    out << "addr:"  << IPv4Address(addr.getLo()) << "  ";
-    out << "real_packet_count:" << real_packet_count<< "  ";
-    out <<  "last_ttl:" << last_ttl<< "  ";
-    out <<  "num_hops:" << num_hops<< "  ";
-    out <<  "last_valid:" << last_valid<< "  ";            /* when last packet via this neighbour was received */
-    out <<  "real_bits:" << real_bits[0]<< "  ";
-    out <<  "orig_node :" << IPv4Address(orig_node->orig.getLo())<< "  ";
-    out <<  "owner_node :" << IPv4Address(owner_node->orig.getLo())<< "  ";
-    return out.str();
-}
-/*
-OrigNode::OrigNode(const OrigNode &other)
-{
-    setName(other.getName());
-    router=other.router;
-    batmanIf=other.batmanIf;
-    bcast_own=other.bcast_own;
-    bcast_own_sum=other.bcast_own_sum;
-    bcast_own = other.bcast_own;
-    bcast_own_sum = other.bcast_own_sum;
-    tq_own=other.tq_own;
-    tq_asym_penalty=other.tq_asym_penalty;
-    last_valid=other.last_valid;
-    gwflags=other.gwflags;
-    hna_buff=NULL;
-    last_real_seqno=0;
-    last_ttl=0;
-    neigh_list = other.neigh_list;
-}
-*/
-
-OrigNode::~OrigNode()
-{
-    router = NULL;
-    batmanIf = NULL;
-    bcast_own.clear();
-    bcast_own_sum.clear();
-    hna_buff.clear();
-
-    while (!neigh_list.empty())
-    {
-        NeighNode *node = neigh_list.back();
-        neigh_list.pop_back();
-        node->owner_node = NULL;
-        delete node;
-    }
-    while (!hna_buff.empty())
-    {
-        BatmanHnaMsg * aux = hna_buff.back();
-        hna_buff.pop_back();
-        delete aux;
-    }
-}
-
-void NeighNode::clear()
-{
-    addr = (Uint128)0;
-    real_packet_count = 0;
-    for (unsigned int i=0; i<tq_recv.size(); i++)
-         tq_recv[i] = 0;
-    tq_index = 0;
-    tq_avg = 0;
-    last_ttl = 0;
-    num_hops = MAX_HOPS;
-    last_valid = 0;            /* when last packet via this neighbour was received */
-    for (unsigned int i=0; i<real_bits.size(); i++)
-        real_bits[i] = 0;
-    orig_node = NULL;
-    owner_node = NULL;
-    if_incoming = NULL;
-}
-
-
-NeighNode::~NeighNode()
-{
-    tq_recv.clear();
-    real_bits.clear();
-    if (this->owner_node)
-    {
-        for (unsigned int i=0; i<this->owner_node->neigh_list.size(); i++)
-        {
-            if (this == this->owner_node->neigh_list[i])
-            {
-                this->owner_node->neigh_list.erase(this->owner_node->neigh_list.begin()+i);
-                return;
-            }
-        }
-    }
-}
-
-
-NeighNode::NeighNode(OrigNode* origNode, OrigNode *orig_neigh_node, const Uint128 &neigh, BatmanIf* ifIncoming, const uint32_t &num_words, const uint32_t &global_win_size)
-{
-    tq_recv.resize(sizeof(uint16_t) * global_win_size);
-    real_bits.resize(num_words);
-    clear();
-    this->addr = neigh;
-    this->orig_node = orig_neigh_node;
-    this->if_incoming = ifIncoming;
-    this->owner_node = origNode;
-    origNode->neigh_list.push_back(this);
-}
+#endif
 
 
 /* this function finds or creates an originator entry for the given address if it does not exits */
-OrigNode  *Batman::get_orig_node(const Uint128 &addr) {
+OrigNode *Batman::get_orig_node(const Uint128 &addr) {
     OrigNode *orig_node;
     OrigMap::iterator it;
 
     it = origMap.find(addr);
 
-    if (it!=origMap.end())
+    if (it != origMap.end())
         return it->second;
+
+    //addr_to_string(addr, orig_str, ADDR_STR_LEN);
+    //debug_output(4, "Creating new originator: %s \n", orig_str);
 
     orig_node = new OrigNode();
     orig_node->bcast_own.resize(found_ifs * num_words);
@@ -215,34 +81,6 @@ OrigNode  *Batman::get_orig_node(const Uint128 &addr) {
     origMap.insert(std::pair<Uint128, OrigNode *>(addr, orig_node));
     return orig_node;
 }
-
-NeighNode * Batman::create_neighbor(OrigNode *orig_node, OrigNode *orig_neigh_node, const Uint128 &neigh, BatmanIf* if_incoming)
-{
-    return new NeighNode(orig_node, orig_neigh_node, neigh, if_incoming, num_words, global_win_size);
-}
-
-void Batman::ring_buffer_set(std::vector<uint8_t> &tq_recv, uint8_t &tq_index, uint8_t value)
-{
-    tq_recv[tq_index] = value;
-    tq_index = (tq_index + 1) % global_win_size;
-}
-
-uint8_t Batman::ring_buffer_avg(std::vector<uint8_t> &tq_recv)
-{
-    uint16_t count = 0;
-    uint32_t sum = 0;
-    for (unsigned int i=0; i < tq_recv.size(); i++)
-    {
-        if (tq_recv[i] != 0) {
-            count++;
-            sum += tq_recv[i];
-        }
-    }
-    if (count == 0)
-        return 0;
-    return (uint8_t)(sum / count);
-}
-
 
 void Batman::update_orig(OrigNode *orig_node, BatmanPacket *in, const Uint128 &neigh, BatmanIf *if_incoming, BatmanHnaMsg *hna_recv_buff, int16_t hna_buff_len, uint8_t is_duplicate, const simtime_t &curr_time) {
     GwNode *gw_node;
@@ -453,4 +291,178 @@ void Batman::purge_orig(const simtime_t &curr_time)
     if (gw_purged)
         choose_gw();
 }
+
+
+OrigNode::OrigNode()
+{
+    clear();
+}
+
+void OrigNode::clear()
+{
+    router = NULL;
+    batmanIf = NULL;
+    totalRec = 0;
+    for (unsigned int i=0; i<bcast_own.size(); i++)
+       bcast_own[i] = 0;
+    for (unsigned int i=0; i<bcast_own_sum.size(); i++)
+       bcast_own_sum[i] = 0;
+    tq_own = 0;
+    tq_asym_penalty = 0;
+    last_valid = 0;        /* when last packet from this node was received */
+    gwflags = 0;      /* flags related to gateway functions: gateway class */
+    hna_buff.clear();
+    last_real_seqno = 0;   /* last and best known squence number */
+    last_ttl = 0;         /* ttl of last received packet */
+    num_hops = MAX_HOPS;
+    neigh_list.clear();
+}
+
+std::string OrigNode::info() const
+{
+    std::stringstream out;
+    out << "orig:"  << IPv4Address(orig.getLo()) << "  ";
+    out << "totalRec:"  << this->totalRec << "  ";
+    if (bcast_own[0])
+      out << "bcast_own:" << bcast_own[0]<< "  ";
+    else
+        out << "bcast_own: *  ";
+    if (bcast_own_sum[0])
+      out << "bcast_own_sum:" << bcast_own_sum[0]<< "  ";
+    else
+        out << "bcast_own_sum: * ";
+
+    out << "tq_own:" << (int)tq_own<< "  ";
+    out << "tq_asym_penalty:" <<  (int)tq_asym_penalty<< "  ";
+    out << "last_valid:" << last_valid;        /* when last packet from this node was received */
+    out << "num_hops:" << num_hops;
+    out << " \n neig info: \n";
+
+    NeighNode *neigh_node = NULL;
+    for (unsigned int i = 0; i < neigh_list.size(); i++)
+    {
+        NeighNode * tmp_neigh_node = neigh_list[i];
+        if (tmp_neigh_node->addr == orig)
+            neigh_node = tmp_neigh_node;
+    }
+    if (!neigh_node)
+        out << "*";
+    else
+        out << neigh_node->info();
+
+    for (unsigned int i = 0; i < neigh_list.size(); i++)
+    {
+        out << "list neig :" << IPv4Address(neigh_list[i]->addr.getLo()) << " ";
+    }
+
+    out << "\n router info:"; if (router==NULL) out << "*  "; else out << router->info() << "  ";
+    return out.str();
+}
+
+std::string NeighNode::info() const
+{
+    std::stringstream out;
+    out << "addr:"  << IPv4Address(addr.getLo()) << "  ";
+    out << "real_packet_count:" << real_packet_count<< "  ";
+    out <<  "last_ttl:" << last_ttl<< "  ";
+    out <<  "num_hops:" << num_hops<< "  ";
+    out <<  "last_valid:" << last_valid<< "  ";            /* when last packet via this neighbour was received */
+    out <<  "real_bits:" << real_bits[0]<< "  ";
+    out <<  "orig_node :" << IPv4Address(orig_node->orig.getLo())<< "  ";
+    out <<  "owner_node :" << IPv4Address(owner_node->orig.getLo())<< "  ";
+    return out.str();
+}
+/*
+OrigNode::OrigNode(const OrigNode &other)
+{
+    setName(other.getName());
+    router=other.router;
+    batmanIf=other.batmanIf;
+    bcast_own=other.bcast_own;
+    bcast_own_sum=other.bcast_own_sum;
+    bcast_own = other.bcast_own;
+    bcast_own_sum = other.bcast_own_sum;
+    tq_own=other.tq_own;
+    tq_asym_penalty=other.tq_asym_penalty;
+    last_valid=other.last_valid;
+    gwflags=other.gwflags;
+    hna_buff=NULL;
+    last_real_seqno=0;
+    last_ttl=0;
+    neigh_list = other.neigh_list;
+}
+*/
+
+OrigNode::~OrigNode()
+{
+    router = NULL;
+    batmanIf = NULL;
+    bcast_own.clear();
+    bcast_own_sum.clear();
+    hna_buff.clear();
+
+    while (!neigh_list.empty())
+    {
+        NeighNode *node = neigh_list.back();
+        neigh_list.pop_back();
+        node->owner_node = NULL;
+        delete node;
+    }
+    while (!hna_buff.empty())
+    {
+        BatmanHnaMsg * aux = hna_buff.back();
+        hna_buff.pop_back();
+        delete aux;
+    }
+}
+
+void NeighNode::clear()
+{
+    addr = (Uint128)0;
+    real_packet_count = 0;
+    for (unsigned int i=0; i<tq_recv.size(); i++)
+         tq_recv[i] = 0;
+    tq_index = 0;
+    tq_avg = 0;
+    last_ttl = 0;
+    num_hops = MAX_HOPS;
+    last_valid = 0;            /* when last packet via this neighbour was received */
+    for (unsigned int i=0; i<real_bits.size(); i++)
+        real_bits[i] = 0;
+    orig_node = NULL;
+    owner_node = NULL;
+    if_incoming = NULL;
+}
+
+
+NeighNode::~NeighNode()
+{
+    tq_recv.clear();
+    real_bits.clear();
+    if (this->owner_node)
+    {
+        for (unsigned int i=0; i<this->owner_node->neigh_list.size(); i++)
+        {
+            if (this == this->owner_node->neigh_list[i])
+            {
+                this->owner_node->neigh_list.erase(this->owner_node->neigh_list.begin()+i);
+                return;
+            }
+        }
+    }
+}
+
+
+NeighNode::NeighNode(OrigNode* origNode, OrigNode *orig_neigh_node, const Uint128 &neigh, BatmanIf* ifIncoming, const uint32_t &num_words, const uint32_t &global_win_size)
+{
+    tq_recv.resize(sizeof(uint16_t) * global_win_size);
+    real_bits.resize(num_words);
+    clear();
+    this->addr = neigh;
+    this->orig_node = orig_neigh_node;
+    this->if_incoming = ifIncoming;
+    this->owner_node = origNode;
+    origNode->neigh_list.push_back(this);
+}
+
 
