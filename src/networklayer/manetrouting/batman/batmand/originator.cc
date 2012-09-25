@@ -211,7 +211,7 @@ void Batman::purge_orig(const simtime_t &curr_time)
             for (unsigned int i = 0; i<gw_list.size(); i++) {
                 gw_node = gw_list[i];
 
-                if (gw_node->deleted.raw())
+                if (SIMTIME_RAW(gw_node->deleted))
                     continue;
 
                 if (gw_node->orig_node == orig_node) {

@@ -25,13 +25,173 @@
 #include "IPv4InterfaceData.h"
 
 
-BatmanIf * Batman::is_batman_if(InterfaceEntry * dev)
+#if 0   // UNUSED ORIGINAL CODE
+uint8_t debug_level = 0;
+
+
+#ifdef PROFILE_DATA
+
+uint8_t debug_level_max = 5;
+
+#elif DEBUG_MALLOC && MEMORY_USAGE
+
+uint8_t debug_level_max = 5;
+
+#else
+
+uint8_t debug_level_max = 4;
+
+#endif
+
+
+char *prog_name;
+
+
+/*
+ * "-g" is the command line switch for the gateway class,
+ */
+
+uint8_t gateway_class = 0;
+
+/* "-r" is the command line switch for the routing class,
+ * 0 set no default route
+ * 1 use fast internet connection
+ * 2 use stable internet connection
+ * 3 use use best statistic (olsr style)
+ * this option is used to set the routing behaviour
+ */
+
+uint8_t routing_class = 0;
+
+
+int16_t originator_interval = 1000;   /* originator message interval in miliseconds */
+
+GwNode *curr_gateway = NULL;
+pthread_t curr_gateway_thread_id = 0;
+
+uint32_t pref_gateway = 0;
+
+char *policy_routing_script = NULL;
+int policy_routing_pipe = 0;
+pid_t policy_routing_script_pid;
+
+uint8_t found_ifs = 0;
+uint8_t active_ifs = 0;
+int32_t receive_max_sock = 0;
+fd_set receive_wait_set;
+
+uint8_t unix_client = 0;
+uint8_t log_facility_active = 0;
+
+struct hashtable_t *orig_hash;
+
+struct list_head_first forw_list;
+struct list_head_first gw_list;
+struct list_head_first if_list;
+
+struct vis_if vis_if;
+struct unix_if unix_if;
+struct debug_clients debug_clients;
+
+unsigned char *vis_packet = NULL;
+uint16_t vis_packet_size = 0;
+
+uint64_t batman_clock_ticks = 0;
+
+uint8_t hop_penalty = TQ_HOP_PENALTY;
+uint32_t purge_timeout = PURGE_TIMEOUT;
+uint8_t minimum_send = TQ_LOCAL_BIDRECT_SEND_MINIMUM;
+uint8_t minimum_recv = TQ_LOCAL_BIDRECT_RECV_MINIMUM;
+uint8_t global_win_size = TQ_GLOBAL_WINDOW_SIZE;
+uint8_t local_win_size = TQ_LOCAL_WINDOW_SIZE;
+uint8_t num_words = (TQ_LOCAL_WINDOW_SIZE / WORD_BIT_SIZE);
+uint8_t aggregation_enabled = 1;
+
+int nat_tool_avail = -1;
+int8_t disable_client_nat = 0;
+
+
+void usage(void)
 {
-    for (unsigned int i=0; i<if_list.size(); i++)
-    {
-        if (if_list[i]->dev==dev)
+    fprintf(stderr, "Usage: batman [options] interface [interface interface]\n");
+    fprintf(stderr, "       -a add announced network(s)\n");
+    fprintf(stderr, "       -A delete announced network(s)\n");
+    fprintf(stderr, "       -b run connection in batch mode\n");
+    fprintf(stderr, "       -c connect via unix socket\n");
+    fprintf(stderr, "       -d debug level\n");
+    fprintf(stderr, "       -g gateway class\n");
+    fprintf(stderr, "       -h this help\n");
+    fprintf(stderr, "       -H verbose help\n");
+    fprintf(stderr, "       -i internal options output\n");
+    fprintf(stderr, "       -o originator interval in ms\n");
+    fprintf(stderr, "       -p preferred gateway\n");
+    fprintf(stderr, "       -r routing class\n");
+    fprintf(stderr, "       -s visualization server\n");
+    fprintf(stderr, "       -v print version\n");
+    fprintf(stderr, "       --policy-routing-script\n");
+    fprintf(stderr, "       --disable-client-nat\n");
+}
+
+
+void verbose_usage(void)
+{
+    fprintf(stderr, "Usage: batman [options] interface [interface interface]\n\n");
+    fprintf(stderr, "       -a add announced network(s)\n");
+    fprintf(stderr, "          network/netmask is expected\n");
+    fprintf(stderr, "       -A delete announced network(s)\n");
+    fprintf(stderr, "          network/netmask is expected\n");
+    fprintf(stderr, "       -b run connection in batch mode\n");
+    fprintf(stderr, "       -c connect to running batmand via unix socket\n");
+    fprintf(stderr, "       -d debug level\n");
+    fprintf(stderr, "          default:         0 -> debug disabled\n");
+    fprintf(stderr, "          allowed values:  1 -> list neighbours\n");
+    fprintf(stderr, "                           2 -> list gateways\n");
+    fprintf(stderr, "                           3 -> observe batman\n");
+    fprintf(stderr, "                           4 -> observe batman (very verbose)\n\n");
+
+    if (debug_level_max == 5)
+        fprintf(stderr, "                           5 -> memory debug / cpu usage\n\n");
+
+    fprintf(stderr, "       -g gateway class\n");
+    fprintf(stderr, "          default:         0 -> gateway disabled\n");
+    fprintf(stderr, "          allowed values:  download/upload in kbit/s (default) or mbit/s\n");
+    fprintf(stderr, "          note:            batmand will choose the nearest gateway class representing your speeds\n");
+    fprintf(stderr, "                           and therefore accepts all given values\n");
+    fprintf(stderr, "                           e.g. 5000\n");
+    fprintf(stderr, "                                5000kbit\n");
+    fprintf(stderr, "                                5mbit\n");
+    fprintf(stderr, "                                5mbit/1024\n");
+    fprintf(stderr, "                                5mbit/1024kbit\n");
+    fprintf(stderr, "                                5mbit/1mbit\n");
+    fprintf(stderr, "       -h shorter help\n");
+    fprintf(stderr, "       -H this help\n");
+    fprintf(stderr, "       -i gives information about all internal options\n");
+    fprintf(stderr, "       -o originator interval in ms\n");
+    fprintf(stderr, "          default: 1000, allowed values: >0\n\n");
+    fprintf(stderr, "       -p preferred gateway\n");
+    fprintf(stderr, "          default: none, allowed values: IP\n\n");
+    fprintf(stderr, "       -r routing class (only needed if gateway class = 0)\n");
+    fprintf(stderr, "          default:         0  -> set no default route\n");
+    fprintf(stderr, "          allowed values:  1  -> use fast internet connection (gw_flags * TQ)\n");
+    fprintf(stderr, "                           2  -> use stable internet connection (TQ)\n");
+    fprintf(stderr, "                           3  -> use fast-switch internet connection (TQ but switch as soon as a better gateway appears)\n\n");
+    fprintf(stderr, "                           XX -> use late-switch internet connection (TQ but switch as soon as a gateway appears which is XX TQ better)\n\n");
+    fprintf(stderr, "       -s visualization server\n");
+    fprintf(stderr, "          default: none, allowed values: IP\n\n");
+    fprintf(stderr, "       -v print version\n");
+    fprintf(stderr, "       --policy-routing-script send all routing table changes to the script\n");
+    fprintf(stderr, "       --disable-client-nat deactivates the 'set tunnel NAT rules' feature (useful for half tunneling)\n");
+}
+#endif
+
+
+BatmanIf *Batman::is_batman_if(InterfaceEntry *dev)
+{
+    for (unsigned int i=0; i<if_list.size(); i++) {
+        if (if_list[i]->dev == dev)
             return if_list[i];
     }
+
     return NULL;
 }
 
@@ -44,7 +204,7 @@ void Batman::choose_gw(void)
     int download_speed, upload_speed;
 
     current_time = getTime();
-    if ((routing_class == 0) || ((routing_class < 4) && ((int64_t)(current_time.raw() - (originator_interval.raw() * local_win_size)) < 0))) {
+    if ((routing_class == 0) || ((routing_class < 4) && ((int64_t)(SIMTIME_RAW(current_time) - (SIMTIME_RAW(originator_interval) * local_win_size)) < 0))) {
         return;
     }
 
@@ -57,14 +217,11 @@ void Batman::choose_gw(void)
         return;
     }
 
-    for (unsigned int i = 0; i<gw_list.size(); i++)
-    {
+    for (unsigned int i = 0; i < gw_list.size(); i++) {
         gw_node = gw_list[i];
 
         /* ignore this gateway if recent connection attempts were unsuccessful */
         /* if it is our only gateway retry immediately */
-        //FIXME atnezni alaposan: mi ez????
-        //if ((gw_node != (GwNode *)gw_list.next) || (gw_node->list.next != (struct list_head *)&gw_list)) {
         if (gw_list.size() > 1) {
             if (current_time < (gw_node->last_failure + 30.000))
                 continue;

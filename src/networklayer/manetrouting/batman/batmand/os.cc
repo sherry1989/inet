@@ -177,6 +177,6 @@ void Batman::check_active_interfaces(void)
 
 simtime_t Batman::getTime()
 {
-    return simTime()+par("desynchronized");
+    return simTime() + par("desynchronized");
 }
 
