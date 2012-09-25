@@ -55,15 +55,15 @@ void Batman::choose_gw(void)
         /* if it is our only gateway retry immediately */
         //FIXME atnezni alaposan: mi ez????
         //if ((gw_node != (GwNode *)gw_list.next) || (gw_node->list.next != (struct list_head *)&gw_list)) {
-        if (gw_list.size()) {
-            if (current_time < (gw_node->last_failure + 30))
+        if (gw_list.size() > 1) {
+            if (current_time < (gw_node->last_failure + 30.000))
                 continue;
         }
 
         if (gw_node->orig_node->router == NULL)
             continue;
 
-        if (gw_node->deleted > 0)
+        if (SIMTIME_RAW(gw_node->deleted))
             continue;
 
         switch (routing_class) {
@@ -110,6 +110,7 @@ void Batman::choose_gw(void)
 //                debug_output(3, "Removing default route - better gateway found\n");
 //            else
 //                debug_output(3, "Removing default route - no gateway in range\n");
+
             del_default_route();
         }
 
@@ -119,6 +120,7 @@ void Batman::choose_gw(void)
         if ((curr_gateway != NULL) && (!is_aborted())) {
 //            addr_to_string(curr_gateway->orig_node->orig, orig_str, ADDR_STR_LEN);
 //            debug_output(3, "Adding default route to %s (gw_flags: %i, tq: %i, gw_product: %i)\n", orig_str, max_gw_class, max_tq, max_gw_factor);
+
             add_default_route();
         }
     }
@@ -127,11 +129,18 @@ void Batman::choose_gw(void)
 void Batman::update_routes(OrigNode *orig_node, NeighNode *neigh_node, BatmanHnaMsg *hna_recv_buff, int16_t hna_buff_len)
 {
     NeighNode *old_router;
+    //debug_output(4, "update_routes() \n");
 
     old_router = orig_node->router;
 
     /* also handles orig_node->router == NULL and neigh_node == NULL */
     if ((orig_node != NULL) && (orig_node->router != neigh_node)) {
+        //if ((orig_node != NULL) && (neigh_node != NULL)) {
+        //    addr_to_string(orig_node->orig, orig_str, ADDR_STR_LEN);
+        //    addr_to_string(neigh_node->addr, next_str, ADDR_STR_LEN);
+        //    debug_output(4, "Route to %s via %s\n", orig_str, next_str);
+        //}
+
         /* adds duplicated code but makes it more readable */
 
         /* new route added */
@@ -140,6 +149,7 @@ void Batman::update_routes(OrigNode *orig_node, NeighNode *neigh_node, BatmanHna
 
             add_del_route(orig_node->orig, 32, neigh_node->addr,
                     neigh_node->if_incoming->if_index, neigh_node->if_incoming->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_ADD);
+
             orig_node->batmanIf = neigh_node->if_incoming;
             orig_node->router = neigh_node;
 
@@ -223,6 +233,9 @@ void Batman::update_gw_list(OrigNode *orig_node, uint8_t new_gwflags, uint16_t g
     {
         gw_node = gw_list[i];
         if (gw_node->orig_node == orig_node) {
+            //addr_to_string(gw_node->orig_node->orig, orig_str, ADDR_STR_LEN);
+            //debug_output(3, "Gateway class of originator %s changed from %i to %i\n", orig_str, gw_node->orig_node->gwflags, new_gwflags);
+
             if (new_gwflags == 0) {
                 gw_node->deleted = getTime();
                 gw_node->orig_node->gwflags = new_gwflags;
@@ -238,6 +251,11 @@ void Batman::update_gw_list(OrigNode *orig_node, uint8_t new_gwflags, uint16_t g
         }
     }
 
+    //addr_to_string(orig_node->orig, orig_str, ADDR_STR_LEN);
+    //get_gw_speeds(new_gwflags, &download_speed, &upload_speed);
+
+    //debug_output(3, "Found new gateway %s -> class: %i - %i%s/%i%s\n", orig_str, new_gwflags, (download_speed > 2048 ? download_speed / 1024 : download_speed), (download_speed > 2048 ? "MBit" : "KBit"), (upload_speed > 2048 ? upload_speed / 1024 : upload_speed), (upload_speed > 2048 ? "MBit" : "KBit"));
+
     gw_node = new GwNode();
     memset(gw_node, 0, sizeof(GwNode));
             //FIXME ezt igy szabad???? vptr???? GwNode most mar nem cObject, igy nem gond, de nem szep!!!!
@@ -245,6 +263,7 @@ void Batman::update_gw_list(OrigNode *orig_node, uint8_t new_gwflags, uint16_t g
     gw_node->orig_node = orig_node;
     gw_node->gw_port = gw_port;
     gw_node->last_failure = getTime();
+
     gw_list.push_back(gw_node);
 }
 
@@ -350,13 +369,15 @@ int Batman::isBidirectionalNeigh(OrigNode *orig_node, OrigNode *orig_neigh_node,
             (local_win_size * local_win_size * local_win_size);
 
     in->setTq((in->getTq() * orig_neigh_node->tq_own * orig_neigh_node->tq_asym_penalty) / (TQ_MAX_VALUE *  TQ_MAX_VALUE));
-/*
-    addr_to_string(orig_node->orig, orig_str, ADDR_STR_LEN);
-    addr_to_string(orig_neigh_node->orig, neigh_str, ADDR_STR_LEN);
 
-    debug_output(4, "bidirectional: orig = %-15s neigh = %-15s => own_bcast = %2i, real recv = %2i, local tq: %3i, asym_penalty: %3i, total tq: %3i \n",
-              orig_str, neigh_str, total_count, neigh_node->real_packet_count, orig_neigh_node->tq_own, orig_neigh_node->tq_asym_penalty, in->tq);
-*/
+    //addr_to_string(orig_node->orig, orig_str, ADDR_STR_LEN);
+    //addr_to_string(orig_neigh_node->orig, neigh_str, ADDR_STR_LEN);
+
+    /*debug_output(3, "bidirectional: orig = %-15s neigh = %-15s => own_bcast = %2i, real recv = %2i, local tq: %3i, asym_penalty: %3i, total tq: %3i \n",
+    orig_str, neigh_str, total_count, neigh_node->real_packet_count, orig_neigh_node->tq_own, orig_neigh_node->tq_asym_penalty, in->tq);*/
+    //debug_output(4, "bidirectional: orig = %-15s neigh = %-15s => own_bcast = %2i, real recv = %2i, local tq: %3i, asym_penalty: %3i, total tq: %3i \n",
+    //          orig_str, neigh_str, total_count, neigh_node->real_packet_count, orig_neigh_node->tq_own, orig_neigh_node->tq_asym_penalty, in->tq);
+
     /* if link has the minimum required transmission quality consider it bidirectional */
     if (in->getTq() >= TQ_TOTAL_BIDRECT_LIMIT)
         return 1;
@@ -368,13 +389,13 @@ int Batman::isBidirectionalNeigh(OrigNode *orig_node, OrigNode *orig_neigh_node,
 static void generate_vis_packet(void)
 {
     struct hash_it_t *hashit = NULL;
-    struct orig_node *orig_node;
+    OrigNode *orig_node;
     struct vis_data *vis_data;
     struct list_head *list_pos;
-    struct batman_if *batman_if;
+    BatmanIf *batman_if;
 
     if (vis_packet != NULL) {
-        debugFree(vis_packet, 1102);
+        delete vis_packet;
         vis_packet = NULL;
         vis_packet_size = 0;
     }
@@ -382,7 +403,7 @@ static void generate_vis_packet(void)
     vis_packet_size = sizeof(struct vis_packet);
     vis_packet = debugMalloc(vis_packet_size, 104);
 
-    memcpy(&((struct vis_packet *)vis_packet)->sender_ip, (unsigned char *)&(((struct batman_if *)if_list.next)->addr.sin_addr.s_addr), 4);
+    memcpy(&((struct vis_packet *)vis_packet)->sender_ip, (unsigned char *)&(((BatmanIf *)if_list.next)->addr.sin_addr.s_addr), 4);
 
     ((struct vis_packet *)vis_packet)->version = VIS_COMPAT_VERSION;
     ((struct vis_packet *)vis_packet)->gw_class = gateway_class;
@@ -433,7 +454,7 @@ static void generate_vis_packet(void)
     vis_packet = hna_local_update_vis_packet(vis_packet, &vis_packet_size);
 
     if (vis_packet_size == sizeof(struct vis_packet)) {
-        debugFree(vis_packet, 1107);
+        delete vis_packet;
         vis_packet = NULL;
         vis_packet_size = 0;
     }
@@ -463,8 +484,7 @@ uint8_t Batman::count_real_packets(BatmanPacket *in, const Uint128 &neigh, Batma
 
     debug_output(3, "count_real_packets: orig = %s, neigh = %s, seq = %i, last seq = %i\n", orig_str, neigh_str, in->seqno, orig_node->last_real_seqno);*/
 
-    for (unsigned int i = 0; i<orig_node->neigh_list.size(); i++)
-    {
+    for (unsigned int i = 0; i<orig_node->neigh_list.size(); i++) {
         tmp_neigh_node = orig_node->neigh_list[i];
 
         if (!is_duplicate)
