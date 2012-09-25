@@ -87,6 +87,7 @@ void Batman::bit_shift(std::vector<TYPE_OF_WORD> &seq_bits, int32_t n) {
          *
          * our desired output would be: 9876 5432 1000 0000
          * */
+
         seq_bits[i] =
                 (seq_bits[i - word_num] << word_offset) +
                         /* take the lower port from the left half, shift it left to its final position */
@@ -163,7 +164,8 @@ int Batman::bit_packet_count(std::vector<TYPE_OF_WORD> &seq_bits)
     return(hamming);
 }
 
-uint8_t Batman::bit_count(int32_t to_count) {
+uint8_t Batman::bit_count(int32_t to_count)
+{
     uint8_t hamming = 0;
 
     while (to_count) {

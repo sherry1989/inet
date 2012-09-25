@@ -187,9 +187,13 @@ void verbose_usage(void)
 
 BatmanIf *Batman::is_batman_if(InterfaceEntry *dev)
 {
-    for (unsigned int i=0; i<if_list.size(); i++) {
-        if (if_list[i]->dev == dev)
-            return if_list[i];
+    BatmanIf *batman_if;
+
+    for (unsigned int if_pos = 0; if_pos < if_list.size(); if_pos++) {
+        batman_if = if_list[if_pos];
+
+        if (batman_if->dev == dev)
+            return batman_if;
     }
 
     return NULL;
@@ -217,8 +221,8 @@ void Batman::choose_gw(void)
         return;
     }
 
-    for (unsigned int i = 0; i < gw_list.size(); i++) {
-        gw_node = gw_list[i];
+    for (unsigned int pos = 0; pos < gw_list.size(); pos++ ) {
+        gw_node = gw_list[pos];
 
         /* ignore this gateway if recent connection attempts were unsuccessful */
         /* if it is our only gateway retry immediately */
@@ -332,42 +336,39 @@ void Batman::update_routes(OrigNode *orig_node, NeighNode *neigh_node, BatmanHna
 
             add_del_route(orig_node->orig, 32, orig_node->router->addr, orig_node->batmanIf->if_index,
                     orig_node->batmanIf->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_DEL);
-            orig_node->router = neigh_node;
+
+            // __USE_MINHOP__ and OrigNode::num_hops is extension
+#ifdef __USE_MINHOP__
+        } else if ((orig_node->router->num_hops<neigh_node->num_hops) && (neigh_node->tq_avg<=orig_node->router->tq_avg+1))
+        {
+            // no change
+        }
+        else if ((orig_node->router->num_hops==neigh_node->num_hops) && (neigh_node->tq_avg==orig_node->router->tq_avg+1))
+        {
+            // no change
+#endif
 
         /* route changed */
         } else {
-            // __USE_MINHOP__ and OrigNode::num_hops is extension
-            bool Change = true;
-#ifdef __USE_MINHOP__
-            if (orig_node->router->num_hops<neigh_node->num_hops)
-            {
-                 // evaluate
-                 if (neigh_node->tq_avg<=orig_node->router->tq_avg+1)
-                    Change = false;
-            }
-            else if (orig_node->router->num_hops==neigh_node->num_hops)
-            {
-                if (neigh_node->tq_avg==orig_node->router->tq_avg+1)
-                   Change = false;
-            }
-#endif
+            //debug_output(4, "Route changed\n");
+
             /* add new route */
-            if (Change)
-            {
-                 add_del_route(orig_node->orig, 32, neigh_node->addr,
-                      neigh_node->if_incoming->if_index, neigh_node->if_incoming->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_ADD);
+            add_del_route(orig_node->orig, 32, neigh_node->addr,
+                    neigh_node->if_incoming->if_index, neigh_node->if_incoming->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_ADD);
 
             /* delete old route */ // Not necessary ADD delete the old route before write
             // add_del_route(orig_node->orig, 32, orig_node->router->addr, orig_node->batmanIf->if_index,
             //        orig_node->batmanIf->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_DEL);
 
-                 orig_node->batmanIf = neigh_node->if_incoming;
-                 orig_node->router = neigh_node;
-                 orig_node->num_hops = neigh_node->num_hops+1;
+            orig_node->batmanIf = neigh_node->if_incoming;
+            orig_node->router = neigh_node;
+            orig_node->num_hops = neigh_node->num_hops+1;
+
             /* update announced network(s) */
-                 hna_global_update(orig_node, hna_recv_buff, hna_buff_len, old_router);
-            }
+            hna_global_update(orig_node, hna_recv_buff, hna_buff_len, old_router);
         }
+
+        orig_node->router = neigh_node;
     } else if (orig_node != NULL) {
         hna_global_update(orig_node, hna_recv_buff, hna_buff_len, old_router);
     }
@@ -378,7 +379,7 @@ void Batman::update_routes(OrigNode *orig_node, NeighNode *neigh_node, BatmanHna
         Uint128 next = omnet_exist_rte(orig_node->orig);
         if (orig_node->router)
         {
-            if (next!=orig_node->router->addr)
+            if (next != orig_node->router->addr)
                 add_del_route(orig_node->orig, 32, orig_node->router->addr,
                      orig_node->router->if_incoming->if_index, orig_node->router->if_incoming->dev, BATMAN_RT_TABLE_HOSTS, ROUTE_TYPE_UNICAST, ROUTE_ADD);
         }
@@ -396,9 +397,9 @@ void Batman::update_gw_list(OrigNode *orig_node, uint8_t new_gwflags, uint16_t g
 {
     GwNode *gw_node;
 
-    for (unsigned int i = 0; i<gw_list.size(); i++)
-    {
+    for (unsigned int i = 0; i<gw_list.size(); i++) {
         gw_node = gw_list[i];
+
         if (gw_node->orig_node == orig_node) {
             //addr_to_string(gw_node->orig_node->orig, orig_str, ADDR_STR_LEN);
             //debug_output(3, "Gateway class of originator %s changed from %i to %i\n", orig_str, gw_node->orig_node->gwflags, new_gwflags);
@@ -488,8 +489,8 @@ int Batman::isBidirectionalNeigh(OrigNode *orig_node, OrigNode *orig_neigh_node,
     uint8_t total_count;
 
     if (orig_node == orig_neigh_node) {
-        for (unsigned int i = 0; i < orig_node->neigh_list.size(); i++) {
-            tmp_neigh_node = orig_node->neigh_list[i];
+        for (unsigned int list_pos = 0; list_pos < orig_node->neigh_list.size(); list_pos++ ) {
+            tmp_neigh_node = orig_node->neigh_list[list_pos];
             if ((tmp_neigh_node->addr == orig_neigh_node->orig) && (tmp_neigh_node->if_incoming == if_incoming))
                 neigh_node = tmp_neigh_node;
         }
@@ -500,8 +501,8 @@ int Batman::isBidirectionalNeigh(OrigNode *orig_node, OrigNode *orig_neigh_node,
         neigh_node->last_valid = recv_time;
     } else {
         /* find packet count of corresponding one hop neighbor */
-        for (unsigned int i = 0; i < orig_neigh_node->neigh_list.size(); i++) {
-            tmp_neigh_node = orig_neigh_node->neigh_list[i];
+        for (unsigned int list_pos = 0; list_pos < orig_neigh_node->neigh_list.size(); list_pos++ ) {
+            tmp_neigh_node = orig_neigh_node->neigh_list[list_pos];
 
             if ((tmp_neigh_node->addr == orig_neigh_node->orig) && (tmp_neigh_node->if_incoming == if_incoming))
                 neigh_node = tmp_neigh_node;
@@ -598,8 +599,8 @@ static void generate_vis_packet(void)
 
     /* secondary interfaces */
     if (found_ifs > 1) {
-        list_for_each(list_pos, &if_list) {
-            batman_if = list_entry(list_pos, struct batman_if, list);
+        for (unsigned int list_pos = 0; list_pos < if_list.size(); list_pos++ ) {
+            batman_if = list_entry(list_pos, BatmanIf, list);
 
             if (((struct vis_packet *)vis_packet)->sender_ip == batman_if->addr.sin_addr.s_addr)
                 continue;
@@ -651,8 +652,8 @@ uint8_t Batman::count_real_packets(BatmanPacket *in, const Uint128 &neigh, Batma
 
     debug_output(3, "count_real_packets: orig = %s, neigh = %s, seq = %i, last seq = %i\n", orig_str, neigh_str, in->seqno, orig_node->last_real_seqno);*/
 
-    for (unsigned int i = 0; i<orig_node->neigh_list.size(); i++) {
-        tmp_neigh_node = orig_node->neigh_list[i];
+    for (unsigned int list_pos = 0; list_pos < orig_node->neigh_list.size(); list_pos++ ) {
+        tmp_neigh_node = orig_node->neigh_list[list_pos];
 
         if (!is_duplicate)
             is_duplicate = get_bit_status(tmp_neigh_node->real_bits, orig_node->last_real_seqno, in->getSeqNumber());
