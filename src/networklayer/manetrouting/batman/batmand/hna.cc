@@ -353,6 +353,8 @@ void Batman::_hna_global_del(OrigNode *orig_node, HnaElement *hna_element)
         return;
 
     hna_global_entry = it->second;
+    hna_global_entry->curr_orig_node = NULL;
+
     for (unsigned int i=0; i<hna_global_entry->orig_list.size(); ) {
         orig_ptr = hna_global_entry->orig_list[i];
 
