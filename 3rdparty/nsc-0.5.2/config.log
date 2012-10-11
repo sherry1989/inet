@@ -1,0 +1,6 @@
+file /home/cmcc/omnet_workspace/inet/3rdparty/nsc-0.5.2/SConstruct,line 125:
+	Configure(confdir = .sconf_temp)
+scons: Configure: Checking target architecure...
+scons: Configure: (cached) x86
+
+
