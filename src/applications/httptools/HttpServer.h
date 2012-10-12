@@ -48,6 +48,12 @@
  */
 class INET_API HttpServer : public HttpServerBase, public TCPSocket::CallbackInterface
 {
+    //--added by wangqian, 2012-05-22
+    public:
+        HttpServer();
+        virtual ~HttpServer();
+    //--added end
+
     protected:
         TCPSocket listensocket;
         TCPSocketMap sockCollection;

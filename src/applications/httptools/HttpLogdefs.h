@@ -35,10 +35,15 @@
 #define LL_INFO 1
 #define LL_DEBUG 2
 
-#define EV_DEBUG EV << getFullPath() << " #DEBUG#    : "
-#define EV_INFO EV << getFullPath() << " #INFO#     : "
-#define EV_WARNING EV << getFullPath() << " #WARNING#  : "
-#define EV_ERROR EV << getFullPath() << " #ERROR#    : "
-#define EV_SUMMARY EV << getFullPath() << " #SUMMARY#    : "
+//--modified by wangqian, 2012-05-29
+/*
+ * add simTime
+ */
+#define EV_DEBUG EV << simTime() << " ;" << getFullPath() << "; #DEBUG#    : ;"
+#define EV_INFO EV << simTime() << " ;" << getFullPath() << "; #INFO#     : ;"
+#define EV_WARNING EV << simTime() << " ;" << getFullPath() << "; #WARNING#  : ;"
+#define EV_ERROR EV << simTime() << " ;" << getFullPath() << "; #ERROR#    : ;"
+#define EV_SUMMARY EV << simTime() << " ;" << getFullPath() << "; #SUMMARY#    : ;"
+//--modified end
 
 #endif

@@ -32,6 +32,18 @@
 
 Define_Module(HttpServer);
 
+//--added by wangqian, 2012-05-22
+HttpServer::HttpServer()
+{
+
+}
+
+HttpServer::~HttpServer()
+{
+
+}
+//--added end
+
 void HttpServer::initialize()
 {
     HttpServerBase::initialize();
@@ -116,6 +128,9 @@ void HttpServer::socketDataArrived(int connId, void *yourPtr, cPacket *msg, bool
     cMessage *reply = handleReceivedMessage(msg);
     if (reply!=NULL)
     {
+        //--added by wangqian, 2012-05-17
+        EV_DEBUG << "Send message on connection " << connId << ". Message=" << reply->getName() << ", kind=" << reply->getKind()<< endl;
+        //--added end
         socket->send(reply); // Send to socket if the reply is non-zero.
     }
     delete msg; // Delete the received message here. Must not be deleted in the handler!

@@ -161,6 +161,8 @@ class INET_API HttpBrowser : public HttpBrowserBase, public TCPSocket::CallbackI
         //@}
 
     protected:
+        //--modified by wangqian, 2012-05-16
+        //change to virtual functions
         /** @name Socket establishment and data submission */
         //@{
         /**
@@ -169,15 +171,16 @@ class INET_API HttpBrowser : public HttpBrowserBase, public TCPSocket::CallbackI
          * stored as a myPtr with the socket. The message is transmitted once the socket is established, signaled
          * by a call to socketEstablished.
          */
-        void submitToSocket(const char* moduleName, int connectPort, HttpRequestMessage *msg);
+        virtual void submitToSocket(const char* moduleName, int connectPort, HttpRequestMessage *msg);
 
         /**
          * Establishes a socket and assigns a queue of messages to be transmitted.
          * Same as the overloaded version, except a number of messages are queued for transmission. The same socket
          * instance is used for all the queued messages.
          */
-        void submitToSocket(const char* moduleName, int connectPort, HttpRequestQueue &queue);
+        virtual void submitToSocket(const char* moduleName, int connectPort, HttpRequestQueue &queue);
         //@}
+        //--modified end
 };
 
 #endif

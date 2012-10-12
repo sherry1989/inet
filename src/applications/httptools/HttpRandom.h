@@ -38,7 +38,11 @@
 
 #include "HttpUtils.h"
 
-enum DISTR_TYPE {dt_normal, dt_uniform, dt_exponential, dt_histogram, dt_constant, dt_zipf};
+//--modified by wangqian, 2012-06-15
+/*
+ * add lognormal and pareto distribution
+ */
+enum DISTR_TYPE {dt_normal, dt_uniform, dt_exponential, dt_histogram, dt_constant, dt_zipf, dt_lognormal, dt_pareto};
 
 // Defines for the distribution names
 #define DISTR_NORMAL_STR "normal"
@@ -47,6 +51,9 @@ enum DISTR_TYPE {dt_normal, dt_uniform, dt_exponential, dt_histogram, dt_constan
 #define DISTR_HISTOGRAM_STR "histogram"
 #define DISTR_CONSTANT_STR "constant"
 #define DISTR_ZIPF_STR "zipf"
+#define DISTR_LOGNORMAL_STR "lognormal"
+#define DISTR_PARETO_STR "pareto"
+//--modified end
 
 /**
  * Base random object. Should not be instantiated directly.
@@ -221,6 +228,65 @@ class rdZipf : public rdObject
         void __initialize(int n, double alpha, bool baseZero);
         void __setup_c();
 };
+
+
+//--added by wangqian, 2012-06-15
+/**
+ * LogNormal distribution random object.
+ * Wraps the OMNeT++ lognormal distribution function but adds a minimum limit.
+ */
+class rdLogNormal : public rdObject
+{
+    protected:
+        double m_mean;          ///< The mean of the distribution.
+        double m_sd;             ///< The sd of the distribution.
+        double m_min;           ///< The minimum limit   .
+        double m_max;          ///< The high limit
+        bool m_bMinLimit;
+        bool m_bMaxLimit;
+    public:
+        /** Constructor for direct initialization */
+        rdLogNormal(double mean, double sd);
+        /** Constructor for initialization with an XML element */
+        rdLogNormal(cXMLAttributeMap attributes);
+        /** Set the min limit for the random values */
+        void setMinLimit(double min) {m_min = min; m_bMinLimit = true;}
+        /** Cancel the min limit when not needed any more */
+        void resetMinLimit() {m_bMinLimit = false;}
+        void setMaxLimit(double max) {m_max = max; m_bMaxLimit = true;}
+        void resetMaxLimit() {m_bMaxLimit = false;}
+        /** Get a random value */
+        virtual double draw();
+};
+
+/**
+ * Pareto distribution random object.
+ * Wraps the OMNeT++ pareto distribution function, but adds min and max limits.
+ */
+class rdPareto : public rdObject
+{
+    protected:
+        double m_a;      ///< The parameter a
+        double m_b;      ///< The parameter b
+        double m_c;      ///< The shift c
+        double m_min;       ///< The low limit
+        double m_max;       ///< The high limit
+        bool m_bMinLimit;
+        bool m_bMaxLimit;
+    public:
+        /** Constructor for direct initialization */
+        rdPareto(double a, double b, double c);
+        /** Constructor for initialization with an XML element */
+        rdPareto(cXMLAttributeMap attributes);
+        /** Get a random value */
+        virtual double draw();
+        // Getters and setters
+        void setMinLimit(double min) {m_min = min; m_bMinLimit = true;}
+        void resetMinLimit() {m_bMinLimit = false;}
+        void setMaxLimit(double max) {m_max = max; m_bMaxLimit = true;}
+        void resetMaxLimit() {m_bMaxLimit = false;}
+};
+//--added end
 
 /**
  * A factory class used to construct random distribution objects based on XML elements.

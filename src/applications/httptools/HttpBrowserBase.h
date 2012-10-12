@@ -155,8 +155,11 @@ class INET_API HttpBrowserBase : public HttpNodeBase
         //@}
 
     protected:
+        //--modified by wangqian, 2012-05-17
+        //change to virtual function
         /** Handle a HTTP data message */
         void handleDataMessage(cMessage *msg);
+        //--modified end
 
         /** Handle a self message -- events and such */
         void handleSelfMessages(cMessage *msg);

@@ -66,6 +66,12 @@
  */
 class INET_API HttpServerBase : public HttpNodeBase
 {
+    //--added by wangqian, 2012-05-22
+    public:
+        HttpServerBase();
+        virtual ~HttpServerBase();
+    //--added end
+
     protected:
         /**
          * Describes a HTML page

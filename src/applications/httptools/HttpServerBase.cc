@@ -30,6 +30,17 @@
 
 #include "HttpServerBase.h"
 
+//--added by wangqian, 2012-05-22
+HttpServerBase::HttpServerBase()
+{
+
+}
+
+HttpServerBase::~HttpServerBase()
+{
+
+}
+//--added end
 
 void HttpServerBase::initialize()
 {
@@ -312,6 +323,11 @@ HttpReplyMessage* HttpServerBase::generateDocument(HttpRequestMessage *request, 
     replymsg->setContentType(CT_HTML); // Emulates the content-type header field
     replymsg->setKind(HTTPT_RESPONSE_MESSAGE);
 
+    //--add by wangqian, 2012-07-06
+    // when protocol not 1.1, not setKeepAlive
+    replymsg->setKeepAlive(httpProtocol==11);
+    //--add end
+
     if (scriptedMode)
     {
         replymsg->setPayload(htmlPages[resource].body.c_str());
@@ -355,8 +371,17 @@ HttpReplyMessage* HttpServerBase::generateResourceMessage(HttpRequestMessage *re
     replymsg->setSerial(request->serial());
     replymsg->setResult(200);
     replymsg->setContentType(category); // Emulates the content-type header field
-    replymsg->setByteLength(resources[resource]); // Set the resource size
+    //--modified by wangqian, 2012-05-17
+    //set non-0 ByteLength temperately, let the TCP send this message out
+    replymsg->setByteLength(resources[resource]+100); // Set the resource size
+    EV_DEBUG << "resource message bytelength " << resources[resource] << endl;
+    //--modified end
     replymsg->setKind(HTTPT_RESPONSE_MESSAGE);
+
+    //--add by wangqian, 2012-07-06
+    // when protocol not 1.1, not setKeepAlive
+    replymsg->setKeepAlive(httpProtocol==11);
+    //--add end
 
     sprintf(szReply, "RESOURCE-BODY:%s", resource.c_str());
     return replymsg;
@@ -375,6 +400,11 @@ HttpReplyMessage* HttpServerBase::generateErrorReply(HttpRequestMessage *request
     replymsg->setResult(code);
     replymsg->setByteLength((int)rdErrorMsgSize->draw());
     replymsg->setKind(HTTPT_RESPONSE_MESSAGE);
+
+    //--add by wangqian, 2012-07-06
+    // when protocol not 1.1, not setKeepAlive
+    replymsg->setKeepAlive(httpProtocol==11);
+    //--add end
 
     badRequests++;
     return replymsg;

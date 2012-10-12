@@ -38,6 +38,12 @@ std::string rdObject::typeStr()
         case dt_uniform: return DISTR_UNIFORM_STR;
         case dt_exponential: return DISTR_EXPONENTIAL_STR;
         case dt_histogram: return DISTR_HISTOGRAM_STR;
+        //--added by wangqian, 2012-06-15
+        case dt_constant: return DISTR_CONSTANT_STR;
+        case dt_zipf: return DISTR_ZIPF_STR;
+        case dt_lognormal: return DISTR_LOGNORMAL_STR;
+        case dt_pareto: return DISTR_PARETO_STR;
+        //--added end
         default: return "UNKNOWN";
     }
 }
@@ -335,6 +341,97 @@ void rdZipf::__setup_c()
     m_c = 1.0 / m_c;
 }
 
+
+//--added by wangqian, 2012-06-15
+rdLogNormal::rdLogNormal(double mean, double sd)
+{
+    m_type = dt_lognormal;
+    m_mean = mean;
+    m_sd = sd;
+    m_min = 0.0;
+    m_max = 0.0;
+    m_bMinLimit = false;
+    m_bMaxLimit = false;
+}
+
+rdLogNormal::rdLogNormal(cXMLAttributeMap attributes)
+{
+    m_type = dt_lognormal;
+    if (!_hasKey(attributes, "mean"))
+        throw "Undefined parameter for lograndom distribution. Mean must be defined for a lograndom distribution";
+    if (!_hasKey(attributes, "sd"))
+        throw "Undefined parameter for lograndom distribution. sd must be defined for a lograndom distribution";
+    m_mean = atof(attributes["mean"].c_str());
+    m_sd = atof(attributes["sd"].c_str());
+
+    m_min = 0.0;
+    m_max = 0.0;
+    m_bMinLimit = _hasKey(attributes, "min");
+    m_bMaxLimit = _hasKey(attributes, "max");
+    if (m_bMinLimit)
+        m_min = atof(attributes["min"].c_str());
+    if (m_bMaxLimit)
+        m_max = atof(attributes["max"].c_str());
+}
+
+double rdLogNormal::draw()
+{
+    double val;
+
+    do
+        val = lognormal(m_mean, m_sd);
+    while ((m_bMinLimit && val < m_min) || (m_bMaxLimit && val > m_max));
+
+    return val;
+}
+
+rdPareto::rdPareto(double a, double b, double c)
+{
+    m_type = dt_pareto;
+    m_a = a;
+    m_b = b;
+    m_c = c;
+    m_min = 0.0;
+    m_max = 0.0;
+    m_bMinLimit = false;
+    m_bMaxLimit = false;
+}
+
+rdPareto::rdPareto(cXMLAttributeMap attributes)
+{
+    m_type = dt_pareto;
+    if (!_hasKey(attributes, "a"))
+        throw "Undefined parameter for pareto distribution. a must be defined for a pareto distribution";
+    if (!_hasKey(attributes, "b"))
+        throw "Undefined parameter for pareto distribution. b must be defined for a pareto distribution";
+    if (!_hasKey(attributes, "c"))
+        throw "Undefined parameter for pareto distribution. c must be defined for a pareto distribution";
+    m_a = atof(attributes["a"].c_str());
+    m_b = atof(attributes["b"].c_str());
+    m_c = atof(attributes["c"].c_str());
+
+    m_min = 0.0;
+    m_max = 0.0;
+    m_bMinLimit = _hasKey(attributes, "min");
+    m_bMaxLimit = _hasKey(attributes, "max");
+    if (m_bMinLimit)
+        m_min = atof(attributes["min"].c_str());
+    if (m_bMaxLimit)
+        m_max = atof(attributes["max"].c_str());
+}
+
+double rdPareto::draw()
+{
+    double val;
+
+    do
+        val = pareto_shifted(m_a, m_b, m_c);
+    while ((m_bMinLimit && val < m_min) || (m_bMaxLimit && val > m_max));
+
+    return val;
+}
+//--added end
+
 rdObject* rdObjectFactory::create(cXMLAttributeMap attributes)
 {
     std::string typeName = attributes["type"];
@@ -345,6 +442,10 @@ rdObject* rdObjectFactory::create(cXMLAttributeMap attributes)
     else if (typeName=="histogram") dt = dt_histogram;
     else if (typeName=="constant") dt = dt_constant;
     else if (typeName=="zipf") dt = dt_zipf;
+    //--added by wangqian, 2012-06-15
+    else if (typeName=="lognormal") dt = dt_lognormal;
+    else if (typeName=="pareto") dt = dt_pareto;
+    //--added end
     else return NULL;
 
     switch (dt)
@@ -361,6 +462,12 @@ rdObject* rdObjectFactory::create(cXMLAttributeMap attributes)
             return new rdConstant(attributes);
         case dt_zipf:
             return new rdZipf(attributes);
+        //--added by wangqian, 2012-06-15
+        case dt_lognormal:
+            return new rdLogNormal(attributes);
+        case dt_pareto:
+            return new rdPareto(attributes);
+        //--added end
         default:
             return NULL;
     }

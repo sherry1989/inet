@@ -167,10 +167,16 @@ HttpContentType getResourceCategory(std::string resourceExt)
 {
     if (resourceExt=="" || resourceExt=="htm" || resourceExt=="html")
         return CT_HTML;
-    else if (resourceExt=="jpg" || resourceExt=="gif" || resourceExt=="png" || resourceExt=="bmp")
+    //--modified by wangqian, 2012-05-29
+    /*
+     * add ico type to IMAGE
+     * add php type to TEXT
+     */
+    else if (resourceExt=="jpg" || resourceExt=="gif" || resourceExt=="png" || resourceExt=="bmp" || resourceExt=="ico")
         return CT_IMAGE;
-    else if (resourceExt=="css" || resourceExt=="txt" || resourceExt=="js")
+    else if (resourceExt=="css" || resourceExt=="txt" || resourceExt=="js" || resourceExt=="php")
         return CT_TEXT;
+    //--modified end
     return CT_UNKNOWN;
 }
 
