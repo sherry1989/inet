@@ -694,8 +694,14 @@ bool TCPConnection::sendData(bool fullSegmentsOnly, uint32 congestionWindow)
 
     ulong bytesToSend = effectiveWin;
 
-    if (bytesToSend > buffered)
+    //--modified by wangqian, 2012-10-23
+    /*
+     * No need to compare the value of bytesToSend and buffered, just assign directly
+     * The original will only send one tcpSegment, that is will send at most effectiveWin bytes data from the app buffer
+     */
+//    if (bytesToSend > buffered)
         bytesToSend = buffered;
+    //--modified end
 
     uint32 effectiveMaxBytesSend = state->snd_mss;
 
