@@ -171,10 +171,11 @@ HttpContentType getResourceCategory(std::string resourceExt)
     /*
      * add ico type to IMAGE
      * add php type to TEXT
+     * add jsp type to TEXT         --added by wangqian, 2012-10-29
      */
     else if (resourceExt=="jpg" || resourceExt=="gif" || resourceExt=="png" || resourceExt=="bmp" || resourceExt=="ico")
         return CT_IMAGE;
-    else if (resourceExt=="css" || resourceExt=="txt" || resourceExt=="js" || resourceExt=="php")
+    else if (resourceExt=="css" || resourceExt=="txt" || resourceExt=="js" || resourceExt=="php" || resourceExt=="jsp")
         return CT_TEXT;
     //--modified end
     return CT_UNKNOWN;
