@@ -38,12 +38,13 @@
 //--modified by wangqian, 2012-05-29
 /*
  * add simTime
+ * add file path and line number --added by wangqian, 2012-10-30
  */
-#define EV_DEBUG EV << simTime() << " ;" << getFullPath() << "; #DEBUG#    : ;"
-#define EV_INFO EV << simTime() << " ;" << getFullPath() << "; #INFO#     : ;"
-#define EV_WARNING EV << simTime() << " ;" << getFullPath() << "; #WARNING#  : ;"
-#define EV_ERROR EV << simTime() << " ;" << getFullPath() << "; #ERROR#    : ;"
-#define EV_SUMMARY EV << simTime() << " ;" << getFullPath() << "; #SUMMARY#    : ;"
+#define EV_DEBUG EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #DEBUG#    : ;"
+#define EV_INFO EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #INFO#     : ;"
+#define EV_WARNING EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #WARNING#  : ;"
+#define EV_ERROR EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #ERROR#    : ;"
+#define EV_SUMMARY EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #SUMMARY#    : ;"
 //--modified end
 
 #endif
