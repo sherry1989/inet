@@ -306,7 +306,7 @@ void HttpBrowserBase::handleDataMessage(cMessage *msg)
 
     if (appmsg->result()!=200 || (HttpContentType)appmsg->contentType()==CT_UNKNOWN)
     {
-        EV_INFO << "Result for " << appmsg->getName() << " was other than OK. Code: " << appmsg->result() << endl;
+        EV_ERROR << "Result for " << appmsg->getName() << " was other than OK. Code: " << appmsg->result() << endl;
         htmlErrorsReceived++;
         delete msg;
         return;
@@ -319,7 +319,7 @@ void HttpBrowserBase::handleDataMessage(cMessage *msg)
                 EV_INFO << "HTML Document received: " << appmsg->getName() << "'. Size is " << appmsg->getByteLength() << " bytes and serial " << serial << endl;
                 if (strlen(appmsg->payload()) != 0)
                     EV_DEBUG << "Payload of " << appmsg->getName() << " is: " << endl << appmsg->payload()
-                             << ", " << strlen(appmsg->payload()) << " bytes" << endl;
+                             << ", Size is" << strlen(appmsg->payload()) << " bytes" << endl;
                 else
                     EV_DEBUG << appmsg->getName() << " has no referenced resources. No GETs will be issued in parsing" << endl;
                 htmlReceived++;
