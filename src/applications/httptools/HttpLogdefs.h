@@ -47,4 +47,7 @@
 #define EV_SUMMARY EV << simTime() << "; " << getFullPath() << "; " << __FILE__<< "; " << __LINE__ << "; #SUMMARY#    : ;"
 //--modified end
 
+#define EV_DEBUG_NOMODULE EV << simTime() << "; " << "; " << __FILE__<< "; " << __LINE__ << "; #DEBUG#    : ;"
+#define EV_ERROR_NOMODULE EV << simTime() << "; " << "; " << __FILE__<< "; " << __LINE__ << "; #ERROR#    : ;"
+
 #endif
